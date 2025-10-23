@@ -1,6 +1,6 @@
 import React, { useState, useContext, useMemo } from 'react'
 import { motion } from 'framer-motion'
-// सुनिश्चित करें कि ये इंपोर्ट सही पथों से हों
+
 import { AuthContext } from '../contexts/AuthContext.jsx'
 import { getPasswordStrength } from '../utils/validators.js'
 import RotatingBox from './RotatingBox.jsx' 
@@ -12,37 +12,54 @@ export default function Dashboard() {
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [resultUrl, setResultUrl] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false) // नया: प्रोसेसिंग स्टेट
+  const [isProcessing, setIsProcessing] = useState(false) 
 
   const strength = useMemo(() => getPasswordStrength(password), [password])
 
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) setFile(e.target.files[0])
-    setResultUrl(''); // नया फाइल चुनने पर रिजल्ट क्लियर करें
+    setResultUrl(''); 
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!file) return alert('कृपया एक फ़ाइल अपलोड करें।')
-    if (!password) return alert('कृपया पासवर्ड दर्ज करें।')
+    if (!file) return alert('Please upload a file.')
+    if (!password) return alert('Please enter password.')
 
     if (operation === 'encrypt' && !strength.ok) {
-      return alert('एन्क्रिप्शन के लिए एक मजबूत पासवर्ड (8+ वर्णों, अपर/लोअर/अंक/विशेष) का उपयोग करें।')
+      return alert('For encryption, use a strong password (8+ characters, upper/lower/number/special).')
     }
 
     setIsProcessing(true)
     setResultUrl('')
 
-    // डेमो: 1.5 सेकंड की प्रोसेसिंग का अनुकरण करें (Simulate processing)
-    await new Promise((r) => setTimeout(r, 1500))
+    try {
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('password', password)
 
-    setIsProcessing(false)
-    
-    // फ्रंटएंड-ओनली डेमो व्यवहार: परिणाम URL सेट करें 
-    // (जब बैकएंड तैयार हो, तो यह URL एन्क्रिप्टेड/डिक्रिप्टेड फ़ाइल की ओर इशारा करेगा)
-    alert(`${operation.toUpperCase()} ऑपरेशन सफल।`)
-    // डेमो के लिए एक डमी URL सेट करें
-    setResultUrl('#') 
+      // SEND TO BACKEND
+      const endpoint = operation === 'encrypt' ? '/upload' : '/decrypt'
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        // Set download URL from backend response
+        setResultUrl(result.download_url)
+        alert(`${operation.toUpperCase()} operation successful!`)
+      } else {
+        alert('Error: ' + result.error)
+      }
+    } catch (error) {
+      alert('Connection failed: ' + error.message)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const strengthColor = {
@@ -80,21 +97,18 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 110, damping: 16 }}
-        // 3D Tilt Effect
         whileHover={{ rotateX: 1, rotateY: 1, z: 3 }}
         style={{ transformPerspective: 1000 }}
         className="bg-white p-8 rounded-2xl shadow-2xl border border-slate-300 max-w-xl mx-auto space-y-6 relative"
       >
-        {/* प्रोसेसिंग ओवरले (Processing Overlay) */}
         {isProcessing && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl">
                 <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent border-solid rounded-full animate-spin"></div>
                 <p className="mt-4 text-indigo-600 font-semibold">{buttonText}</p>
-                <p className="text-sm text-slate-500">Processing file on client-side...</p>
+                <p className="text-sm text-slate-500">Sending to backend...</p>
             </div>
         )}
 
-        {/* Welcome Text and 3D Component */}
         <div className="flex items-center justify-between pb-4 border-b border-indigo-100">
             <p className="text-lg font-medium text-slate-700">
               Welcome, <span className="font-bold text-indigo-600">{user?.email || 'User'}</span>
@@ -111,7 +125,6 @@ export default function Dashboard() {
 
         <h2 className="text-2xl font-bold text-slate-900 mb-2">File Vault Access</h2>
         
-        {/* File Input */}
         <div className="space-y-1">
             <label className="block text-sm font-medium text-slate-700">1. Choose File to Process</label>
             <input
@@ -123,7 +136,6 @@ export default function Dashboard() {
             />
         </div>
 
-        {/* Operation Radio Buttons */}
         <div className="pt-2">
             <label className="block text-sm font-medium text-slate-700 mb-2">2. Select Operation</label>
             <div className="flex items-center gap-8">
@@ -154,7 +166,6 @@ export default function Dashboard() {
             </div>
         </div>
 
-        {/* Password Input */}
         <div className="space-y-1">
             <label className="block text-sm font-medium text-slate-700">
               3. {operation === 'encrypt' ? 'Set Encryption Key' : 'Enter Decryption Key'}
@@ -180,7 +191,6 @@ export default function Dashboard() {
             </div>
         </div>
 
-        {/* Strength Meter (केवल एन्क्रिप्ट के लिए) */}
         {operation === 'encrypt' && (
           <>
             <div className="mb-1 h-2 w-full bg-slate-200 rounded overflow-hidden">
@@ -195,7 +205,6 @@ export default function Dashboard() {
           </>
         )}
 
-        {/* Submit Button */}
         <motion.button
           type="submit"
           whileHover={{ scale: 1.02 }}
@@ -210,7 +219,6 @@ export default function Dashboard() {
           {buttonText}
         </motion.button>
 
-        {/* Download Result (परिणाम डाउनलोड करें) */}
         {resultUrl && (
           <motion.a
             initial={{ opacity: 0, y: 10 }}
@@ -220,7 +228,7 @@ export default function Dashboard() {
             download
             className="block mt-4 text-center text-emerald-600 font-bold text-lg hover:underline"
           >
-            Download Processed File (परिणाम डाउनलोड करें)
+            Download Processed File
           </motion.a>
         )}
       </motion.form>

@@ -1,0 +1,16 @@
+metaspoilt framework module payloads testing
+privilege eslaction
+http header most common security headers
+web application vulnerability
+lfi
+rfi
+cookies arrtibute
+secure file
+vulnerability ek 
+
+pki
+sysmmartic  
+mitm attack jo key exchange hote hai to kaise use hota hai mitm attack me
+dgital cert
+digital lifecycle
+key management process
